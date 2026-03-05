@@ -1,0 +1,37 @@
+project:
+  chain: base
+  tvl_usd: 250000000   # optional; if unknown, omit
+
+diff_scope:
+  base_ref: origin/main   # default
+  range: ""              # optional: "SHA1..SHA2" or "origin/main..HEAD"
+  commit_window: 20      # recent commits to inspect on current branch
+  gitlog_mode: first-parent  # first-parent or full-history
+  diff_context_lines: 3  # unified diff context lines
+
+runtime_validation:
+  enabled: true
+  rpc_url_env: RPC_URL   # if unset, runtime probe becomes SKIP
+  fork_block: null       # optional (incident block / deterministic checks)
+  max_staleness_sec: 3600
+
+risk_scoring:
+  impact_map: {Critical: 4, High: 3, Medium: 2, Low: 1}
+  likelihood_map: {High: 3, Medium: 2, Low: 1}
+
+coverage_gates:
+  enabled: true
+  line_min: 0.90
+  branch_min: 0.80
+  function_min: 1.00
+
+gating:
+  block_on_new_critical_without_reduce: true
+  block_on_critical_high_invariant_failure: true
+  block_on_unresolved_high_severity_slither: true
+
+fp_control:
+  second_pass_required: true
+  min_disconfirming_checks_per_high_or_critical: 2
+  block_on_missing_second_pass: true
+  block_on_unmapped_changed_state_function: true

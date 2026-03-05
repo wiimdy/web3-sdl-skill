@@ -1,15 +1,111 @@
+---
+name: web3-sdl
+description: Run Web3 SDL stages 1-4 with one deliverable per stage and a final PDF report.
+---
+
 # Web3 SDL Skill
 
-You are performing a Security Development Lifecycle analysis on a smart contract project. Execute the 4 stages below sequentially. Each stage produces output that feeds into the next.
+You are performing a Security Development Lifecycle (SDL) analysis on a smart contract project.
+Execute the 4 stages below sequentially.
 
-Save all outputs to the `sdl-output/` directory.
+Save outputs to the `sdl-output/` directory.
+
+---
+
+## Inputs
+
+- A Foundry project (Solidity source, `foundry.toml`, tests, scripts).
+- Optional: a config file `sdl-config.yml` at repo root to override defaults (coverage gates, risk scoring, external context like TVL).
+
+## Output Contract (Strict)
+
+Generate only these final artifacts:
+
+1. `sdl-output/threat-model.md`
+2. `sdl-output/risk-register.md`
+3. `sdl-output/test-verification.md`
+4. `sdl-output/audit-preparation.md`
+5. `sdl-output/final-report.pdf`
+
+Do not create additional top-level SDL artifact files in `sdl-output/`.
+All supporting evidence (DFD, attack trees, diff context, tool summaries, runtime notes) must be embedded inside the stage document for that step.
+
+---
+
+## Grounding & Validation Rules (Mandatory)
+
+1. Any new or changed external touchpoint must be explicitly analyzed in `threat-model.md`.
+   - Detection source-of-truth must be recent current-branch commits (`git log` within `diff_scope.commit_window`) plus matching Solidity diffs.
+   - Do not infer external touchpoints from untouched historical code outside the analyzed commit window.
+   - Examples: dependency/import changes, new external calls/interfaces, new addresses/constants, bridge/cross-chain paths, role/governance dependencies, keeper/bot/off-chain assumptions.
+
+2. Every High/Critical item must be grounded with concrete evidence in the stage document.
+   - Acceptable evidence: code pointer (`path:line`), diff hunk excerpt, static-analysis snippet, test/runtime evidence.
+   - Status must be one of: `Candidate / Confirmed / Rejected / Needs-Info`.
+   - `Critical/High` is allowed only when:
+     - `Confirmed`, or
+     - runtime validation is impossible but rationale plus mitigation/monitoring is explicit.
+
+3. Runtime validation is best-effort, but skip reasons must be explicit.
+   - If RPC/fork/address prerequisites are missing, mark `SKIP` with required missing inputs.
+
+---
+
+## Configuration (Optional)
+
+If `sdl-config.yml` exists, use it to override defaults. If absent, use defaults below.
+
+```yaml
+project:
+  chain: base
+  tvl_usd: 250000000
+
+diff_scope:
+  base_ref: origin/main
+  range: ""
+  commit_window: 20
+  gitlog_mode: first-parent
+  diff_context_lines: 3
+
+runtime_validation:
+  enabled: true
+  rpc_url_env: RPC_URL
+  fork_block: null
+  max_staleness_sec: 3600
+
+risk_scoring:
+  impact_map: {Critical: 4, High: 3, Medium: 2, Low: 1}
+  likelihood_map: {High: 3, Medium: 2, Low: 1}
+
+coverage_gates:
+  enabled: true
+  line_min: 0.90
+  branch_min: 0.80
+  function_min: 1.00
+
+gating:
+  block_on_new_critical_without_reduce: true
+  block_on_critical_high_invariant_failure: true
+  block_on_unresolved_high_severity_slither: true
+
+fp_control:
+  second_pass_required: true
+  min_disconfirming_checks_per_high_or_critical: 2
+  block_on_missing_second_pass: true
+  block_on_unmapped_changed_state_function: true
+```
+
+Do not guess unknown context (for example TVL). Mark as `Unknown`.
+
+---
 
 ## Prerequisites Check
 
 Before starting, verify:
-1. Run `forge build` — must succeed. If it fails, inform the user.
-2. Run `slither --version` — Slither must be installed. If not, tell the user to run `pip install slither-analyzer`.
-3. The following Trail of Bits skills must be installed. If any are missing, tell the user to install them:
+
+1. `forge build` succeeds.
+2. `slither --version` works (otherwise instruct `pip install slither-analyzer` and stop).
+3. Required Trail of Bits skills are installed:
 
 ```
 /plugin install trailofbits/skills/plugins/entry-point-analyzer
@@ -23,159 +119,231 @@ Before starting, verify:
 /plugin install trailofbits/skills/plugins/variant-analysis
 ```
 
-If any prerequisite is missing, inform the user and stop.
+4. Optional best-effort tools:
+   - `semgrep --version`
+   - `codeql version`
+   - `echidna-test --version` and/or `medusa --version`
+
+If any mandatory prerequisite is missing, stop and report it.
 
 ---
 
 ## Stage 1: Threat Modeling
 
-Identify what can go wrong from an attacker's perspective.
+Goal: identify what can go wrong from an attacker's perspective.
 
-1. **Run `entry-point-analyzer`** on the project.
-   Save output to `sdl-output/entry-points.md`.
+Mandatory diff-centered setup (current branch):
 
-2. **Run `supply-chain-risk-auditor`** to check external dependencies (OpenZeppelin, Chainlink, etc.) for known vulnerabilities.
+1. Resolve branch and diff scope.
+   - If `diff_scope.range` is set, use it.
+   - Otherwise use `diff_scope.base_ref...HEAD`.
+2. Collect recent branch history and Solidity change hunks.
+3. Keep this change intelligence as source-of-truth for Stage 2/3 traceability.
 
-3. For each function classified as `Public (Unrestricted)` or `Review Required` by the entry-point-analyzer, **run `audit-context-building`** to perform deep analysis:
-   - Block-by-block code analysis
-   - Invariant identification
-   - Trust boundary mapping
-   - Cross-function dependency tracking
+Reference commands:
 
-4. **Run `variant-analysis`** to search for known vulnerability patterns across the codebase.
+```bash
+git rev-parse --abbrev-ref HEAD
+git log --first-parent --oneline --max-count 20
+git diff --unified=3 origin/main...HEAD -- '*.sol'
+```
 
-5. **Apply STRIDE-Web3 checklist** to each entry point:
+Run:
 
-   - **Spoofing**: ecrecover verification, Oracle data validation, msg.sender vs tx.origin, cross-chain message auth
-   - **Tampering**: Reentrancy (CEI pattern), integer overflow, storage collision, delegatecall, state variable access control
-   - **Info Disclosure**: Private key management, MEV/mempool exposure, on-chain data visibility
-   - **DoS**: Unbounded loops, block gas limit, revert attacks, emergency pause mechanism
-   - **Elevation of Privilege**: Access control modifiers, multisig, proxy upgrade timelock, function visibility
+- `entry-point-analyzer`
+- `supply-chain-risk-auditor`
+- `audit-context-building` (for high-risk externally callable functions)
+- `variant-analysis`
+- `differential-review` scoped to changed Solidity functions/hunks
 
-6. **Identify composite threats**: Flash loan + oracle manipulation, MEV attacks, governance attacks, hook/callback attacks.
+Build and save one file only: `sdl-output/threat-model.md`.
 
-7. **Compile Threat Model** and save to `sdl-output/threat-model.md` with:
-   - System overview and external dependencies
-   - Asset inventory (what needs protecting, per layer)
-   - Entry points table (from entry-point-analyzer)
-   - STRIDE-Web3 threat list with IDs, categories, affected assets/functions
-   - Composite threat scenarios
+`threat-model.md` must include:
+
+- System scope and trust boundaries
+- Current branch and analyzed git range
+- Recent commit timeline from current branch (`git log`, latest N by `commit_window`)
+- Change scope from Git diff (`origin/main...HEAD` or configured range)
+- Diff hunk-to-function mapping table for changed Solidity code
+- New/changed external touchpoints and assumptions
+- External touchpoint delta table derived from recent commits only:
+  - commit hash
+  - changed file/function
+  - touchpoint type (import/interface/call/address/role/off-chain dependency)
+  - evidence snippet (diff hunk)
+  - downstream verification target ID
+- Entry points inventory
+- Differential-review findings summary for changed surfaces
+- STRIDE-Web3 threat list (`TM-xxx`) with status and evidence
+- Composite attack scenarios
+- DFD (Mermaid block inline)
+- Attack trees (Mermaid block inline)
+- Evidence appendix (code pointers, diff snippets, tool snippets)
+
+Stage 1 fail condition:
+
+- If branch/range/diff evidence or hunk-to-function mapping is missing, Stage 1 is incomplete.
+- If external touchpoint decisions are not traceable to recent commit evidence, Stage 1 is incomplete.
 
 ---
 
 ## Stage 2: Risk Assessment
 
-Prioritize the threats identified in Stage 1.
+Goal: prioritize Stage 1 threats.
 
-For each threat in the threat model:
+For each threat:
 
-1. **Classify Impact** using Immunefi Vulnerability Severity Classification System v2.3:
-   - **Critical**: Direct theft of user funds, permanent freezing, governance manipulation
-   - **High**: Unclaimed yield theft, temporary freezing, temporary transfer blocking
-   - **Medium**: Gas exhaustion DoS, griefing, contract unable to operate
-   - **Low**: Below promised yield, function incorrect but no loss
+1. Classify Impact using Immunefi v2.3 (Critical/High/Medium/Low).
+2. Estimate Likelihood (High/Medium/Low).
+3. Score using default mapping unless overridden:
+   - Impact: Critical=4, High=3, Medium=2, Low=1
+   - Likelihood: High=3, Medium=2, Low=1
+   - `score = impact_value * likelihood_value`
+   - Priority band default: 9-12=P0, 6-8=P1, 3-4=P2, 1-2=P3
+4. Apply correction factors with explicit notes:
+   - TVL magnitude
+   - Upgradeability/timelock constraints
+   - Pause/circuit-breaker coverage
+   - Oracle/bridge/keeper dependency risk
+5. Assign 4T response: `Transfer / Avoid / Accept / Reduce`.
+   - Critical impact must not default to `Accept`.
+6. Run a mandatory second-think pass for all `High/Critical` threats and all `P0/P1` items.
+   - Perform at least `fp_control.min_disconfirming_checks_per_high_or_critical` disconfirming checks.
+   - Required check types:
+     - precondition falsification (what condition makes this non-exploitable)
+     - contradictory code-path/state validation
+     - counter-evidence from tests/static/runtime artifacts (when available)
+7. Finalize status after second pass.
+   - Track `First Pass` and `Second Pass` verdicts separately.
+   - If severity remains High/Critical, state why disconfirming checks did not invalidate the claim.
 
-2. **Estimate Likelihood**:
-   - **High**: Known pattern, low cost, public exploit exists
-   - **Medium**: Specific conditions required, moderate complexity
-   - **Low**: Theoretical only, exceptional circumstances needed
+Save one file only: `sdl-output/risk-register.md`.
 
-3. **Apply correction factors**:
-   - Higher TVL → increase severity
-   - No proxy/upgrade → increase severity (immutable code)
-   - Emergency pause available → decrease likelihood
-   - Oracle/bridge dependency → increase likelihood
+`risk-register.md` must include:
 
-4. **Assign response strategy (4T)**:
-   - **Transfer**: Bug bounty, insurance
-   - **Avoid**: Remove or simplify risky functionality
-   - **Accept**: Document as known risk
-   - **Reduce**: Strengthen controls (code fix, additional testing)
-   - Rule: Critical impact threats MUST be Reduce.
-
-5. **Save** to `sdl-output/risk-register.md` with:
-   - Summary counts (Critical/High/Medium/Low)
-   - Full risk register table (ID, threat, impact, likelihood, score, response, action)
-   - Correction factors applied
+- Summary counts by impact and priority
+- Full risk register table
+- Correction factors and assumptions
+- Explicit `Reduce` targets for Stage 3
+- First-pass vs second-pass verdict log
+- False-positive disposition summary (`Rejected`, downgraded, retained) with reasons
 
 ---
 
 ## Stage 3: Testing & Verification
 
-Generate and run tests for all threats with Response = "Reduce" from Stage 2.
+Goal: generate and execute verification for all `Reduce` targets.
 
-1. **Extract Reduce targets** from the risk register.
+Before running tools, build a diff-to-test matrix from Stage 1 change intelligence:
 
-2. **Generate invariants** for each Reduce target, in priority order:
-   - Fund conservation: `sum(deposits) == sum(withdrawals) + pool_balance`
-   - Collateral ratios: `collateral > 0 || debt == 0`
-   - Access control: admin functions revert without proper role
-   - Price sanity: `oracle_price within ±X% of reference`
+- For each changed state-modifying function, map at least one test (invariant/fuzz/unit) and linked threat IDs.
+- If no test is possible, mark explicit exception with rationale and owner.
 
-3. **Run `property-based-testing`** skill to convert invariants into property-based tests using Foundry/Echidna/Medusa.
+Run:
 
-4. **Run `spec-to-code-compliance`** to verify code matches its specification. This is critical for catching logic omissions (e.g., missing multiplication in price calculations).
+1. `property-based-testing` to generate Foundry tests (`test/sdl/`).
+2. `spec-to-code-compliance`.
+3. `static-analysis` (Slither required; Semgrep/CodeQL optional).
+4. Foundry execution:
 
-5. **Run `static-analysis`** skill (Slither + CodeQL + Semgrep). Save SARIF output for GitHub integration.
+```bash
+forge test --gas-report
+forge coverage
+```
 
-6. **Generate Foundry test files** in `test/sdl/`:
-   - `Invariants.t.sol` — invariant tests for Critical/High threats
-   - `FuzzTests.t.sol` — fuzz tests for state-changing functions
-   - `SanityChecks.t.sol` — oracle bounds, basic sanity checks
+Coverage gate defaults (if enabled): Line >= 90%, Branch >= 80%, Function = 100%.
 
-7. **Run tests and collect results**:
-   ```bash
-   forge test --gas-report > sdl-output/test-results.txt
-   forge coverage > sdl-output/coverage-report.txt
-   ```
+Diff-test gate:
 
-8. **Verify coverage targets**: Line ≥ 90%, Branch ≥ 80%, Function = 100%.
+- If any changed state-modifying function is unmapped and `fp_control.block_on_unmapped_changed_state_function` is true, Stage 3 fails.
 
-9. **Save** test specification to `sdl-output/test-spec.md` with:
-   - Reduce targets table
-   - Invariant list with expressions
-   - Spec compliance results
-   - Static analysis summary
-   - Coverage report
+Save one file only: `sdl-output/test-verification.md`.
+
+`test-verification.md` must include:
+
+- Diff-to-test matrix (changed function -> threat IDs -> tests)
+- Reduce-target-to-test mapping
+- Generated test files and purpose
+- `forge test` summary (pass/fail, key failures)
+- `forge coverage` summary vs configured gates
+- Static/spec analysis summary (with SKIP reasons if tool missing)
+- Unresolved high-severity findings and owner placeholders
+- Unmapped changed functions and explicit disposition (`Covered / Exception / Gap`)
 
 ---
 
 ## Stage 4: Audit Preparation
 
-Compile all SDL outputs into audit-ready documentation.
+Goal: package audit-ready context.
 
-1. **Run `building-secure-contracts` audit-prep-assistant** skill:
-   - Define security objectives
-   - Run Slither, triage and fix easy issues
-   - Remove dead code, unused libraries
-   - Generate architecture docs, sequence diagrams, actor/privilege mappings
-   - Freeze stable version
+Run `building-secure-contracts` and consolidate findings from Stages 1-3.
 
-2. **Compile audit package** from all previous stages:
-   - Threat Model (Stage 1)
-   - Risk Register (Stage 2)
-   - Test Specification + results (Stage 3)
-   - Known Issues = Accept items from risk register
-   - audit-prep-assistant deliverables
+Save one file only: `sdl-output/audit-preparation.md`.
 
-3. **Save** to `sdl-output/audit-preparation.md` with:
-   - Project overview
-   - SDL process summary (threat count, risk breakdown, coverage %)
-   - Recommended audit focus areas (Critical/High threats)
-   - Known issues table with acceptance rationale
-   - List of all attached documents
+`audit-preparation.md` must include:
+
+- Project overview and scope snapshot
+- SDL summary metrics (threat count, risk breakdown, verification status)
+- Recommended P0/P1 audit focus
+- Known accepted risks with rationale
+- False-positive disposition summary from second-think pass
+- Diff-to-test closure summary for changed state-modifying functions
+- Open questions and missing context
+- Pre-audit action list with priority and owner placeholders
+
+---
+
+## Final Report PDF
+
+Create a stakeholder-ready final report that merges key content from:
+
+- `threat-model.md`
+- `risk-register.md`
+- `test-verification.md`
+- `audit-preparation.md`
+
+Then generate only: `sdl-output/final-report.pdf`.
+
+Use a temporary Markdown file only for PDF rendering, then remove it:
+
+```bash
+pandoc /tmp/final-report.tmp.md -o sdl-output/final-report.pdf --from=gfm --pdf-engine=xelatex
+```
+
+Fallback:
+
+```bash
+npx md-to-pdf /tmp/final-report.tmp.md
+mv /tmp/final-report.tmp.pdf sdl-output/final-report.pdf
+```
+
+If PDF generation fails, record the exact error in `audit-preparation.md` and stop.
+
+Completion rule: do not mark SDL complete until these 5 files exist and are non-empty:
+
+- `threat-model.md`
+- `risk-register.md`
+- `test-verification.md`
+- `audit-preparation.md`
+- `final-report.pdf`
 
 ---
 
 ## CI/CD Mode
 
-When triggered by a PR (via GitHub Actions or pre-push hook):
+When triggered by PR/CI:
 
-1. **Run `differential-review`** on the changed files for security-focused diff analysis.
-2. Execute Stages 1-3 scoped to changed contracts only.
-3. Post summary as PR comment.
-4. **Block PR** if:
-   - Any Critical/High invariant test fails
-   - Coverage drops below threshold
-   - New Critical threat without Reduce strategy
+1. Resolve branch, analyzed range, and recent commit window (`git log --first-parent`).
+2. Detect changed Solidity files (`git diff --name-only origin/main...HEAD | grep '\\.sol$'`).
+3. Run `differential-review`, but embed results into `threat-model.md` (do not emit separate diff artifacts).
+4. Scope Stages 1-3 to changed contracts plus direct dependencies.
+5. Enforce second-think pass for all High/Critical and P0/P1 items.
+6. Enforce diff-to-test mapping completeness for changed state-modifying functions.
+7. Produce the same 5 artifacts only.
+8. Fail CI when configured gating conditions are met:
+   - Critical/High invariant/property test failure
+   - Coverage below gate (if enabled)
+   - New Critical threat without `Reduce` or `Avoid`
    - Unresolved high-severity Slither finding
+   - Missing second-think log for High/Critical or P0/P1 items
+   - Missing diff-to-test mapping for changed state-modifying functions
