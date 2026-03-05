@@ -11,9 +11,12 @@ diff_scope:
 
 runtime_validation:
   enabled: true
-  rpc_url_env: RPC_URL   # if unset, runtime probe becomes SKIP
+  rpc_url_env: https://mainnet.base.org   # if unset, runtime probe becomes SKIP
   fork_block: null       # optional (incident block / deterministic checks)
   max_staleness_sec: 3600
+  prompt_for_rpc_if_missing: true  # ask user which chain/RPC to use when runtime checks need RPC
+  rpc_chain_prompt_required: true  # require explicit chain selection during prompt
+  allow_user_decline_runtime_checks: true  # if declined, run Tier 3 fallback only
 
 risk_scoring:
   impact_map: {Critical: 4, High: 3, Medium: 2, Low: 1}
@@ -28,10 +31,32 @@ coverage_gates:
 gating:
   block_on_new_critical_without_reduce: true
   block_on_critical_high_invariant_failure: true
-  block_on_unresolved_high_severity_slither: true
+  block_on_unresolved_high_severity_slither: false
+  block_on_unresolved_high_severity_semantic: true
 
 fp_control:
   second_pass_required: true
   min_disconfirming_checks_per_high_or_critical: 2
   block_on_missing_second_pass: true
   block_on_unmapped_changed_state_function: true
+
+semantic_validation:
+  oracle_semantic_correctness_required: true
+  require_denomination_trace: true
+  require_validate_gap_analysis: true
+  block_on_unknown_oracle_denomination: true
+
+integration_validation:
+  require_outcome_based_checks: true
+  require_economic_scenario_tests_for_value_surfaces: true
+  require_validator_negative_tests: true
+  require_pre_post_diff_result_comparison: true
+  max_allowed_relative_drift: 0.05
+
+skip_policy:
+  enforce_tier3_without_rpc: true
+  tier3_required_checks:
+    - oracle_name_pattern_blacklist
+    - config_key_denomination_inference
+    - validate_gap_analysis
+    - slither_blind_spot_review
