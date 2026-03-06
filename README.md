@@ -11,6 +11,31 @@ Use `diff-sdl` when you care about a branch, PR, commit range, changed oracle
 surface, or audit-style regression review. Use `project-sdl` when you need a
 baseline threat model and broader repository SDL.
 
+## Install In Claude Code
+
+Recommended project-local install:
+
+```bash
+mkdir -p ./.claude/skills
+git clone https://github.com/wiimdy/web3-sdl-skill.git \
+  ./.claude/skills/web3-sdl-workflows
+```
+
+This keeps the skill inside the current repository at
+`./.claude/skills/web3-sdl-workflows`.
+
+If you already have a local checkout elsewhere, run the installer from your
+project root:
+
+```bash
+/path/to/web3-sdl-skill/scripts/install_claude_code.sh
+```
+
+By default the installer writes to `./.claude/skills/web3-sdl-workflows`.
+
+After that, Claude Code can trigger the skill when your prompt matches
+[`SKILL.md`](./SKILL.md).
+
 ## Quick Start
 
 Minimum install:
@@ -23,14 +48,51 @@ Minimum install:
 Recommended install:
 
 - Node.js with `npm` / `npx`
-- `cd web3-sdl-workflows/.report-renderer && npm install`
-- `cd web3-sdl-workflows/.report-renderer && npx playwright install chromium`
+- `cd ./.claude/skills/web3-sdl-workflows/.report-renderer && npm install`
+- `cd ./.claude/skills/web3-sdl-workflows/.report-renderer && npx playwright install chromium`
 
 Optional install:
 
-- `./web3-sdl-workflows/scripts/install_claude_code.sh --install-tob-skills`
-- `./web3-sdl-workflows/scripts/install_claude_code.sh --install-solidity-auditor`
+- `./.claude/skills/web3-sdl-workflows/scripts/install_claude_code.sh --install-tob-skills`
+- `./.claude/skills/web3-sdl-workflows/scripts/install_claude_code.sh --install-solidity-auditor`
 - `pandoc` plus a PDF engine if you want a secondary non-browser PDF path
+
+
+## Typical Usage
+
+### In Claude Code
+
+Run these from the target repository root.
+
+Run skill in full `project-sdl` mode:
+
+```bash
+claude "Run the Web3 SDL skill on this project in project-sdl mode. Complete Stages 1 through 4 and produce the SDL artifacts."
+```
+
+Run skill in full `diff-sdl` mode:
+
+```bash
+claude "Run the Web3 SDL skill on this branch in diff-sdl mode. Complete Stages 1 through 4, run the required integration, fuzz, invariant, and semantic checks, and produce the SDL artifacts."
+```
+
+Run `diff-sdl` for a PR or commit range:
+
+```bash
+claude "Run the Web3 SDL skill in diff-sdl mode for this PR. Focus on changed oracle configs, STRIDE-Web3, privilege boundaries, and required integration, fuzz, invariant, and semantic checks."
+```
+
+Run only the early analysis stages:
+
+```bash
+claude "Run the Web3 SDL skill on this branch in diff-sdl mode. Execute only Stage 1 and Stage 2, then write the threat model and prioritized risk register."
+```
+
+Run only the reporting stage after evidence already exists:
+
+```bash
+claude "Run the Web3 SDL skill on this project in project-sdl mode. Use the existing findings and verification evidence, then execute only Stage 4 and write the final report."
+```
 
 ## What This Skill Produces
 
@@ -80,7 +142,7 @@ Required for the best-looking PDF output:
 
 - Node.js with `npm` / `npx`
 - local browser renderer dependencies installed under
-  `web3-sdl-workflows/.report-renderer/`
+  `./.claude/skills/web3-sdl-workflows/.report-renderer/`
 - Playwright Chromium browser
 
 Optional:
@@ -88,26 +150,6 @@ Optional:
 - Pashov `solidity-auditor` command
 - Trail of Bits Claude plugins for the full-rigor review path
 - `pandoc` plus a PDF engine as a secondary PDF path
-
-## Install This Skill In Claude Code
-
-Common case:
-
-```bash
-./web3-sdl-workflows/scripts/install_claude_code.sh
-```
-
-This installs the skill into `~/.claude/skills/web3-sdl-workflows`.
-
-Manual copy:
-
-```bash
-mkdir -p ~/.claude/skills
-cp -R web3-sdl-workflows ~/.claude/skills/web3-sdl-workflows
-```
-
-After that, Claude Code can trigger the skill when your prompt matches
-[`SKILL.md`](./SKILL.md).
 
 ## Install The Styled PDF Renderer
 
@@ -118,7 +160,7 @@ predictable layout.
 Install the local renderer once:
 
 ```bash
-cd web3-sdl-workflows/.report-renderer
+cd ./.claude/skills/web3-sdl-workflows/.report-renderer
 npm install
 npx playwright install chromium
 ```
@@ -139,7 +181,7 @@ and nearby dependencies.
 Installer script:
 
 ```bash
-./web3-sdl-workflows/scripts/install_claude_code.sh \
+./.claude/skills/web3-sdl-workflows/scripts/install_claude_code.sh \
   --install-solidity-auditor
 ```
 
@@ -147,8 +189,8 @@ Manual upstream method:
 
 ```bash
 git clone https://github.com/pashov/skills.git
-mkdir -p ~/.claude/commands
-cp -R skills/solidity-auditor ~/.claude/commands/solidity-auditor
+mkdir -p ./.claude/commands
+cp -R skills/solidity-auditor ./.claude/commands/solidity-auditor
 ```
 
 This makes the command invocable as `/solidity-auditor` inside Claude Code.
@@ -171,7 +213,7 @@ variant-analysis@trailofbits
 Install them with:
 
 ```bash
-./web3-sdl-workflows/scripts/install_claude_code.sh \
+./.claude/skills/web3-sdl-workflows/scripts/install_claude_code.sh \
   --install-tob-skills
 ```
 
@@ -229,42 +271,25 @@ reporting:
   pdf_fallback: plaintext
 ```
 
-## Typical Usage
-
-### In Claude Code
-
-Example prompts:
-
-```text
-Run diff-sdl on this branch and produce the SDL artifacts.
-```
-
-```text
-Review PR #578 with diff-sdl. Focus on changed oracle configs, STRIDE-Web3, and required integration, fuzz, invariant, and semantic checks.
-```
-
-```text
-Run project-sdl on this repository and give me a baseline threat model and final report.
-```
 
 ### Direct Helper Commands
 
 Collect the changed scope:
 
 ```bash
-./web3-sdl-workflows/scripts/collect_change_scope.sh origin/main 20
+./.claude/skills/web3-sdl-workflows/scripts/collect_change_scope.sh origin/main 20
 ```
 
 Discover runtime requirements before Stage 3:
 
 ```bash
-./web3-sdl-workflows/scripts/discover_runtime_requirements.sh .
+./.claude/skills/web3-sdl-workflows/scripts/discover_runtime_requirements.sh .
 ```
 
 Run a deterministic oracle semantic check:
 
 ```bash
-./web3-sdl-workflows/scripts/check_oracle_semantics.sh \
+./.claude/skills/web3-sdl-workflows/scripts/check_oracle_semantics.sh \
   --address-book chains/8453.json \
   --asset cbETH \
   --selected-feed cbETHETH_ORACLE \
@@ -284,7 +309,7 @@ Exit code meanings:
 Render the final report manually:
 
 ```bash
-./web3-sdl-workflows/scripts/render_final_report.sh \
+./.claude/skills/web3-sdl-workflows/scripts/render_final_report.sh \
   sdl-output/diff-sdl/final-report.md \
   sdl-output/diff-sdl/final-report.pdf
 ```
@@ -321,13 +346,13 @@ claude plugin list
 Check that the skill is installed:
 
 ```bash
-ls ~/.claude/skills/web3-sdl-workflows
+ls ./.claude/skills/web3-sdl-workflows
 ```
 
 Check that the styled PDF renderer is ready:
 
 ```bash
-test -d web3-sdl-workflows/.report-renderer/node_modules/playwright
+test -d ./.claude/skills/web3-sdl-workflows/.report-renderer/node_modules/playwright
 test -d ~/Library/Caches/ms-playwright || test -d ~/.cache/ms-playwright
 ```
 

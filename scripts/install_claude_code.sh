@@ -5,7 +5,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-CLAUDE_HOME="${CLAUDE_HOME:-${HOME}/.claude}"
+CLAUDE_HOME="${CLAUDE_HOME:-${PWD}/.claude}"
 INSTALL_SOLIDITY_AUDITOR="false"
 INSTALL_TOB_SKILLS="false"
 PASHOV_REPO_DIR=""
@@ -30,7 +30,7 @@ Install the web3-sdl-workflows skill into Claude Code and optionally install:
 - the required Trail of Bits plugins for the full-rigor SDL workflow
 
 Options:
-  --claude-home PATH              Override the Claude Code home directory.
+  --claude-home PATH              Override the Claude Code directory. Defaults to $PWD/.claude.
   --install-solidity-auditor      Install the Pashov solidity-auditor command.
   --install-tob-skills            Install and enable required Trail of Bits plugins.
   --pashov-repo-dir PATH          Use an existing local clone of pashov/skills.
@@ -52,10 +52,31 @@ require_cmd() {
 
 install_main_skill() {
   local target_dir="${CLAUDE_HOME}/skills/web3-sdl-workflows"
+  local source_real=""
+  local target_real=""
+  local temp_dir=""
+
+  source_real="$(cd "${SKILL_ROOT}" && pwd -P)"
+  mkdir -p "$(dirname "${target_dir}")"
+  target_real="$(
+    cd "$(dirname "${target_dir}")"
+    printf '%s/%s\n' "$(pwd -P)" "$(basename "${target_dir}")"
+  )"
+
+  if [[ "${source_real}" == "${target_real}" ]]; then
+    echo "web3-sdl-workflows is already installed at ${target_real}"
+    return
+  fi
+
+  temp_dir="$(mktemp -d)"
+  cp -R "${SKILL_ROOT}" "${temp_dir}/web3-sdl-workflows"
+  rm -rf "${temp_dir}/web3-sdl-workflows/.git"
+  rm -rf "${temp_dir}/web3-sdl-workflows/.claude"
 
   mkdir -p "${CLAUDE_HOME}/skills"
   rm -rf "${target_dir}"
-  cp -R "${SKILL_ROOT}" "${target_dir}"
+  mv "${temp_dir}/web3-sdl-workflows" "${target_dir}"
+  rmdir "${temp_dir}" 2>/dev/null || true
 
   echo "Installed web3-sdl-workflows to ${target_dir}"
 }
