@@ -116,7 +116,7 @@ if [[ -f "${REPORT_TEMPLATE}" ]]; then
     exit 0
   fi
 
-  for engine in pdflatex lualatex; do
+  for engine in tectonic pdflatex lualatex; do
     if command -v "${engine}" >/dev/null 2>&1 && try_pandoc "${engine}" "${REPORT_TEMPLATE}"; then
       exit 0
     fi
@@ -127,7 +127,7 @@ if [[ -n "${PDF_ENGINE}" ]] && try_pandoc "${PDF_ENGINE}"; then
   exit 0
 fi
 
-for engine in wkhtmltopdf weasyprint prince xelatex lualatex pdflatex; do
+for engine in wkhtmltopdf weasyprint prince tectonic xelatex lualatex pdflatex; do
   if command -v "${engine}" >/dev/null 2>&1 && try_pandoc "${engine}"; then
     exit 0
   fi

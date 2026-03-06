@@ -48,21 +48,21 @@ Minimum install:
 Recommended install:
 
 - Node.js with `npm` / `npx`
-- `cd ./.claude/skills/web3-sdl-workflows/.report-renderer && npm install`
-- `cd ./.claude/skills/web3-sdl-workflows/.report-renderer && npx playwright install chromium`
+- `npm install --prefix ./.claude/skills/web3-sdl-workflows/.report-renderer`
+- `npm exec --prefix ./.claude/skills/web3-sdl-workflows/.report-renderer playwright -- install chromium`
 
 Optional install:
 
 - `./.claude/skills/web3-sdl-workflows/scripts/install_claude_code.sh --install-tob-skills`
 - `./.claude/skills/web3-sdl-workflows/scripts/install_claude_code.sh --install-solidity-auditor`
-- `pandoc` plus a PDF engine if you want a secondary non-browser PDF path
+- macOS Pandoc fallback: `brew install pandoc tectonic`
 
 
 ## Typical Usage
 
 ### In Claude Code
 
-Run these from the target repository root.
+Run these from the target repository root. Each command below is self-contained.
 
 Run skill in full `project-sdl` mode:
 
@@ -149,7 +149,7 @@ Optional:
 
 - Pashov `solidity-auditor` command
 - Trail of Bits Claude plugins for the full-rigor review path
-- `pandoc` plus a PDF engine as a secondary PDF path
+- macOS Pandoc fallback: `brew install pandoc tectonic`
 
 ## Install The Styled PDF Renderer
 
@@ -160,9 +160,9 @@ predictable layout.
 Install the local renderer once:
 
 ```bash
-cd ./.claude/skills/web3-sdl-workflows/.report-renderer
-npm install
-npx playwright install chromium
+npm install --prefix ./.claude/skills/web3-sdl-workflows/.report-renderer
+npm exec --prefix ./.claude/skills/web3-sdl-workflows/.report-renderer \
+  playwright -- install chromium
 ```
 
 What happens if you skip this:
@@ -172,6 +172,15 @@ What happens if you skip this:
 - if that also fails, it will fall back to the plain-text PDF renderer
 
 So the styled browser renderer is the recommended path.
+
+If you also want a secondary non-browser PDF path on macOS:
+
+```bash
+brew install pandoc tectonic
+```
+
+`render_final_report.sh` will try `pandoc` with `tectonic` automatically when
+the browser renderer is unavailable.
 
 ## Optional: Install Pashov Solidity Auditor
 
@@ -188,9 +197,11 @@ Installer script:
 Manual upstream method:
 
 ```bash
-git clone https://github.com/pashov/skills.git
+tmp_dir="$(mktemp -d)"
 mkdir -p ./.claude/commands
-cp -R skills/solidity-auditor ./.claude/commands/solidity-auditor
+git clone https://github.com/pashov/skills.git "$tmp_dir/skills"
+cp -R "$tmp_dir/skills/solidity-auditor" ./.claude/commands/solidity-auditor
+rm -rf "$tmp_dir"
 ```
 
 This makes the command invocable as `/solidity-auditor` inside Claude Code.
@@ -353,7 +364,10 @@ Check that the styled PDF renderer is ready:
 
 ```bash
 test -d ./.claude/skills/web3-sdl-workflows/.report-renderer/node_modules/playwright
-test -d ~/Library/Caches/ms-playwright || test -d ~/.cache/ms-playwright
+(
+  test -d "$HOME/Library/Caches/ms-playwright" ||
+  test -d "$HOME/.cache/ms-playwright"
+)
 ```
 
 Check that the Trail of Bits plugins you expect are installed before relying on
