@@ -1,0 +1,10 @@
+{
+  "name": "web3-sdl-report-renderer",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Local browser-based PDF renderer for web3-sdl-workflows",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "playwright": "^1.58.2"
+  }
+}

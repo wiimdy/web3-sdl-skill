@@ -1,0 +1,15 @@
+.DS_Store
+.idea/
+.vscode/
+*.log
+*.tmp
+.env
+.env.*
+.venv/
+.pytest_cache/
+.mypy_cache/
+*.py[cod]
+.report-renderer/node_modules/
+.report-renderer/.cache/
+scripts/__pycache__/
+evals/
