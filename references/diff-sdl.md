@@ -144,6 +144,8 @@ Prefer the repository's native proposal or integration-test harness over direct
 test scaffolding are encoded in tests. Report missing env vars such as
 `PRIMARY_FORK_ID` or chain RPC URLs as runtime blockers first, then rerun with
 the required inputs to distinguish environment failures from code failures.
+When `block_on_missing_rpc_for_required_checks: true`, do not present those
+runtime-backed suites as acceptable skips.
 
 ## Stage 4: Detailed Report
 

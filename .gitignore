@@ -5,6 +5,8 @@
 *.tmp
 .env
 .env.*
+!.env.example
+
 .venv/
 .pytest_cache/
 .mypy_cache/

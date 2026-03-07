@@ -28,7 +28,8 @@ runtime_validation:
   max_staleness_sec: 3600
   prompt_for_rpc_if_missing: true
   rpc_chain_prompt_required: true
-  allow_user_decline_runtime_checks: true
+  allow_user_decline_runtime_checks: false
+  block_on_missing_rpc_for_required_checks: true
 
 risk_scoring:
   impact_map: {Critical: 4, High: 3, Medium: 2, Low: 1}
@@ -109,6 +110,10 @@ reporting:
 - Set `mode.default` to the repository's common use case.
 - Use `diff_scope` only for `diff-sdl`.
 - Use `runtime_validation` when fork, RPC, or live-state checks matter.
+- Keep `block_on_missing_rpc_for_required_checks: true` when a `diff-sdl` run
+  should treat missing RPC as a blocker rather than a soft skip.
+- Set `allow_user_decline_runtime_checks: false` when runtime-backed proposal or
+  integration evidence is mandatory for sign-off.
 - Keep `risk_scoring`, `fp_control`, `semantic_validation`, and `skip_policy`
   aligned with the repository's audit rigor.
 - Use `semantic_validation.max_relative_drift` to turn semantic oracle checks
@@ -143,6 +148,8 @@ mode:
 runtime_validation:
   enabled: true
   rpc_url_env: BASE_RPC_URL
+  allow_user_decline_runtime_checks: false
+  block_on_missing_rpc_for_required_checks: true
 
 risk_scoring:
   impact_map: {Critical: 4, High: 3, Medium: 2, Low: 1}

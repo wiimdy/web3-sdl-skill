@@ -51,6 +51,13 @@ Recommended install:
 - `npm install --prefix ./.claude/skills/web3-sdl-workflows/.report-renderer`
 - `npm exec --prefix ./.claude/skills/web3-sdl-workflows/.report-renderer playwright -- install chromium`
 
+Important for strict `diff-sdl` runs:
+
+- Provide the repository's required RPC env vars before Stage 3 when proposal,
+  fork, oracle, or integration checks need live chain state.
+- Keep `runtime_validation.block_on_missing_rpc_for_required_checks: true` if
+  missing RPC should block completion instead of being treated as a soft skip.
+
 Optional install:
 
 - `./.claude/skills/web3-sdl-workflows/scripts/install_claude_code.sh --install-tob-skills`
@@ -151,6 +158,36 @@ Optional:
 - Trail of Bits Claude plugins for the full-rigor review path
 - macOS Pandoc fallback: `brew install pandoc tectonic`
 
+## Important: RPC Inputs For Stage 3
+
+`diff-sdl` can discover likely runtime requirements, but it cannot fabricate RPC
+access. If the changed surface depends on fork-backed proposal tests, live
+oracle checks, or integration paths that need chain state, provide the required
+RPC env vars before expecting a complete Stage 3 result.
+
+Recommended strict behavior:
+
+- keep `runtime_validation.allow_user_decline_runtime_checks: false`
+- keep `runtime_validation.block_on_missing_rpc_for_required_checks: true`
+- treat missing RPC as a blocker for completion, not as a harmless skip
+
+Example Base mainnet RPC setup:
+
+```bash
+export BASE_RPC_URL="https://base-mainnet.g.alchemy.com/v2/<alchemy-api-key>"
+```
+
+Then point the config at that env name:
+
+```yaml
+runtime_validation:
+  rpc_url_env: BASE_RPC_URL
+```
+
+The skill may still run Tier 3 semantic checks without RPC, but those checks are
+supporting evidence only. They do not replace the required runtime-backed test
+path when the config says RPC is mandatory.
+
 ## Install The Styled PDF Renderer
 
 The default report renderer now uses browser-based HTML/CSS output, not LaTeX.
@@ -250,6 +287,12 @@ Example:
 mode:
   default: diff-sdl
   allow_stage_selection: true
+
+runtime_validation:
+  enabled: true
+  rpc_url_env: BASE_RPC_URL
+  allow_user_decline_runtime_checks: false
+  block_on_missing_rpc_for_required_checks: true
 
 testing:
   require_integration: true

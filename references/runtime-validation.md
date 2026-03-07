@@ -26,8 +26,11 @@ Collect:
 - RPC URL or env var name
 - optional fork block
 
-If the user cannot supply runtime inputs, continue with Tier 3 only and record
-explicit `SKIP` entries for the higher tiers.
+If the user cannot supply runtime inputs, continue with Tier 3 only for
+supporting evidence. When `block_on_missing_rpc_for_required_checks: true`,
+record a blocker instead of treating the higher tiers as an acceptable skip.
+Use explicit `SKIP` entries only when the config allows runtime-backed checks to
+be optional for that run.
 
 ## Harness Selection
 
@@ -58,6 +61,11 @@ For `diff-sdl`, Tier 3 alone is not enough when the changed surface materially
 depends on runtime execution. Report a blocker if the required integration path
 cannot run after reasonable environment discovery.
 
+Do not silently downgrade runtime-backed proposal, oracle, or integration
+checks when the config requires RPC-backed evidence. Missing RPC should still
+produce Tier 3 artifacts, but the run should remain blocked until the required
+runtime path executes.
+
 ## Tier 3 Minimum Checks
 
 Run these static or RPC-free checks when the changed surface warrants them:
@@ -84,4 +92,5 @@ Record in `test-verification.md`:
 **Example 1:**
 Input: The changed code alters a price-consumer path and fork checks are useful.
 Output: Try Tier 1 or Tier 2 if RPC details exist, otherwise run Tier 3 semantic
-checks and mark Tier 1 or Tier 2 as `SKIP` with the missing input.
+checks. If strict config requires runtime evidence, mark the run blocked on the
+missing RPC input instead of reporting a clean skip.

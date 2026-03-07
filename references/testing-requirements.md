@@ -97,9 +97,17 @@ Stop and report the exact blocker when any category cannot run:
 - unsupported test harness
 - external dependency outage
 
+When runtime-backed suites depend on RPC and
+`block_on_missing_rpc_for_required_checks: true`, treat the missing RPC as a
+hard blocker for Stage 3 completion. Do not describe the suite as merely
+skipped.
+
 Separate an environment blocker from a code defect. Once the required runtime
 inputs are supplied, rerun the same command so the report can say whether the
 surface is truly broken or only misconfigured.
+
+Tier 3 semantic checks still matter without RPC, but they do not erase the
+runtime blocker when the config requires live proposal or integration evidence.
 
 ## Scope-Accurate Coverage
 
