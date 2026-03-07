@@ -1,5 +1,17 @@
 # Web3 SDL Report
 
+Use these formatting constraints to keep the PDF stable and readable:
+
+- Keep the main `##` headings exactly as written below so the TOC stays stable.
+- Keep `Engagement Snapshot` to the exact 7-row dashboard table.
+- Keep `Executive Summary` to 2 to 4 short paragraphs, 2 to 4 sentences each.
+- Keep finding titles under roughly 90 characters.
+- Keep `Technical Details`, `Evidence`, and `Recommendation` mostly in bullets,
+  not long narrative blocks.
+- If a finding title is getting too long, move the nuance into `Technical
+  Details` instead of stretching the heading.
+- Prefer consistent sentence-case wording over creative heading variations.
+
 ## Engagement Snapshot
 
 | Field | Value |
@@ -34,6 +46,9 @@ Then include a compact severity summary table:
 | Medium | `0` | `important correctness or coverage gaps` |
 | Low | `0` | `lower-risk issues or hygiene items` |
 | Informational | `0` | `notes and observations` |
+
+Keep the summary table to exactly these five severity rows so the cover page and
+TOC stay visually consistent across reruns.
 
 ## Scope
 
@@ -124,6 +139,9 @@ Provide one table before the detailed findings.
 Use this table like an audit-firm findings summary page. It should be easy to
 scan and prioritize.
 
+Keep the `Surface` and `Verification` columns terse. If the description gets
+long, move the detail down into the finding body.
+
 ## Detailed Findings
 
 Use one subsection per finding:
@@ -165,6 +183,13 @@ operators, or protocol safety.
 - `Mitigated locally`
 - `Fixed upstream`
 - `Acknowledged`
+
+Keep each finding body tight:
+
+- `Why This Matters`: 1 short paragraph
+- `Technical Details`: 3 to 6 bullets
+- `Evidence`: 2 to 5 bullets
+- `Recommendation`: 1 to 3 bullets
 
 ## Verification Summary
 

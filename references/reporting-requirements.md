@@ -37,6 +37,21 @@ diff. If a rich PDF engine is unavailable, use the script fallback renderer and
 record that the PDF formatting is degraded rather than blocking delivery on a
 missing LaTeX package alone.
 
+## Consistency Rules
+
+Keep the final report visually stable across reruns:
+
+- Keep the main `##` headings exactly as defined in the structure above.
+- Keep `Engagement Snapshot` to the exact 7-row table from the outline.
+- Keep `Executive Summary` to 2 to 4 short paragraphs.
+- Keep finding titles under roughly 90 characters so the TOC and findings table
+  do not become layout-dependent.
+- Keep `Surface` and `Verification` cells compact. Move nuance into the finding
+  body instead of stretching the overview table.
+- Prefer bullets in `Technical Details`, `Evidence`, and `Recommendation`.
+- Record long command output in `test-verification.md`, then summarize it in the
+  final report. This keeps PDF pagination more consistent.
+
 ## Supporting Artifact Structures
 
 Use these exact structures for the stage artifacts.

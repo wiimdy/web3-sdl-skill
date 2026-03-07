@@ -48,16 +48,36 @@ body {
 }
 
 .cover-page {
-  min-height: 100vh;
-  padding: 26mm 18mm 20mm;
+  min-height: 252mm;
+  padding: 18mm 18mm 16mm;
   background:
-    radial-gradient(circle at top right, rgba(15, 76, 129, 0.16), transparent 30%),
-    linear-gradient(165deg, #0f1b2e 0%, #17385d 38%, #f4f7fb 38%, #f4f7fb 100%);
+    radial-gradient(circle at 14% 18%, rgba(115, 181, 255, 0.2), transparent 22%),
+    radial-gradient(circle at 88% 10%, rgba(255, 255, 255, 0.12), transparent 18%),
+    linear-gradient(145deg, #081425 0%, #0d2d4d 48%, #123f67 100%);
   color: #f7fbff;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   page-break-after: always;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.cover-page::before {
+  content: "";
+  position: absolute;
+  inset: auto -12% 12% 42%;
+  height: 128mm;
+  border-radius: 44mm 0 0 44mm;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(147, 197, 253, 0.02));
+  transform: rotate(-12deg);
+  z-index: 0;
+}
+
+.cover-page > * {
+  position: relative;
+  z-index: 1;
 }
 
 .cover-kicker {
@@ -77,7 +97,7 @@ body {
 
 .cover-subtitle {
   font-size: 1.06rem;
-  max-width: 46rem;
+  max-width: 36rem;
   color: rgba(247, 251, 255, 0.88);
   margin: 0 0 22px;
 }
@@ -91,11 +111,12 @@ body {
 }
 
 .cover-card {
-  background: rgba(255, 255, 255, 0.09);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.26);
   border-radius: 16px;
   padding: 14px 16px;
   backdrop-filter: blur(10px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
 }
 
 .cover-card-label {
@@ -103,13 +124,14 @@ body {
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  opacity: 0.7;
+  opacity: 0.86;
   margin-bottom: 6px;
 }
 
 .cover-card-value {
-  font-size: 1rem;
+  font-size: 0.96rem;
   font-weight: 600;
+  line-height: 1.35;
   word-break: break-word;
 }
 
@@ -154,25 +176,56 @@ body {
 }
 
 .toc-item {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  padding: 6px 0;
+  list-style: none;
+  margin: 0;
+  padding: 6px 0 8px;
   border-bottom: 1px solid var(--line);
 }
 
-.toc-item a {
+.toc-row {
+  display: grid;
+  grid-template-columns: minmax(0, 62%) 1fr 2.6rem;
+  column-gap: 10px;
+  align-items: end;
+}
+
+.toc-row a {
   color: var(--ink);
   text-decoration: none;
+  min-width: 0;
 }
 
 .toc-sublist {
-  margin: 6px 0 2px 20px;
+  margin: 6px 0 2px 22px;
+  display: grid;
+  gap: 2px;
 }
 
 .toc-sublist .toc-item {
   border-bottom: 0;
-  padding: 3px 0;
+  padding: 3px 0 4px;
+}
+
+.toc-sublist .toc-row {
+  grid-template-columns: minmax(0, 58%) 1fr 2.2rem;
+}
+
+.toc-leader {
+  min-width: 1rem;
+  border-bottom: 1px dotted var(--line-strong);
+  transform: translateY(-0.28rem);
+}
+
+.toc-page-number {
+  min-width: 2ch;
+  text-align: right;
+  color: var(--muted);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.toc-sublist .toc-page-number {
+  font-size: 0.86rem;
 }
 
 #report-content {
@@ -363,6 +416,10 @@ a {
 .report-footer-note {
   color: var(--muted);
   font-size: 0.84rem;
+}
+
+.cover-page .report-footer-note {
+  color: rgba(247, 251, 255, 0.72);
 }
 
 @media print {

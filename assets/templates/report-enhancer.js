@@ -1,5 +1,6 @@
 (function () {
   const meta = window.__REPORT_META__ || {};
+  const PRINT_PAGE_HEIGHT_PX = 11 * 96;
 
   const severityClass = {
     Critical: 'severity-critical',
@@ -160,6 +161,28 @@
     const list = document.createElement('ol');
     list.className = 'toc-list';
 
+    const createTocRow = (targetHeading, label) => {
+      const row = document.createElement('div');
+      row.className = 'toc-row';
+
+      const link = document.createElement('a');
+      link.href = `#${targetHeading.id}`;
+      link.textContent = label;
+      row.appendChild(link);
+
+      const leader = document.createElement('span');
+      leader.className = 'toc-leader';
+      row.appendChild(leader);
+
+      const pageNumber = document.createElement('span');
+      pageNumber.className = 'toc-page-number';
+      const absoluteTop = targetHeading.getBoundingClientRect().top + window.scrollY;
+      pageNumber.textContent = String(Math.max(1, Math.floor(absoluteTop / PRINT_PAGE_HEIGHT_PX) + 1));
+      row.appendChild(pageNumber);
+
+      return row;
+    };
+
     sections.forEach((heading, index) => {
       if (!heading.id) {
         heading.id = `section-${index + 1}`;
@@ -167,11 +190,7 @@
 
       const item = document.createElement('li');
       item.className = 'toc-item';
-
-      const link = document.createElement('a');
-      link.href = `#${heading.id}`;
-      link.textContent = heading.textContent;
-      item.appendChild(link);
+      item.appendChild(createTocRow(heading, heading.textContent));
 
       const parentSection = heading.parentElement;
       const subHeadings = parentSection
@@ -187,10 +206,7 @@
           }
           const subItem = document.createElement('li');
           subItem.className = 'toc-item';
-          const subLink = document.createElement('a');
-          subLink.href = `#${subHeading.id}`;
-          subLink.textContent = subHeading.textContent.replace(/`/g, '');
-          subItem.appendChild(subLink);
+          subItem.appendChild(createTocRow(subHeading, subHeading.textContent.replace(/`/g, '')));
           subList.appendChild(subItem);
         });
         item.appendChild(subList);

@@ -28,19 +28,26 @@ const { chromium } = requireFromRenderer('playwright');
 
 (async () => {
   const browser = await chromium.launch({ headless: true });
-  const page = await browser.newPage();
+  const page = await browser.newPage({
+    viewport: {
+      width: 816,
+      height: 1056,
+    },
+  });
+
+  await page.emulateMedia({ media: 'print' });
 
   await page.goto(pathToFileURL(path.resolve(inputHtml)).href, {
     waitUntil: 'load',
   });
 
   await page.waitForFunction(() => document.body.dataset.reportReady === '1');
-  await page.emulateMedia({ media: 'print' });
   await page.evaluate(() => document.fonts && document.fonts.ready);
 
   await page.pdf({
     path: outputPdf,
     format: 'Letter',
+    preferCSSPageSize: true,
     printBackground: true,
     displayHeaderFooter: true,
     headerTemplate: '<div></div>',
