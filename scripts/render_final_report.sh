@@ -84,27 +84,44 @@ render_plaintext_fallback() {
 }
 
 try_browser_render() {
-  local html_tmp
-  html_tmp="$(mktemp "${TMPDIR:-/tmp}/web3-sdl-report.XXXXXX.html")"
+  local tmp_dir
+  local cover_html
+  local body_html
+  local cover_pdf
+  local body_pdf
+
+  tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/web3-sdl-report.XXXXXX")"
+  cover_html="${tmp_dir}/cover.html"
+  body_html="${tmp_dir}/body.html"
+  cover_pdf="${tmp_dir}/cover.pdf"
+  body_pdf="${tmp_dir}/body.pdf"
 
   if ! command -v python3 >/dev/null 2>&1; then
-    rm -f "${html_tmp}"
+    rm -rf "${tmp_dir}"
     return 1
   fi
 
   if ! command -v node >/dev/null 2>&1; then
-    rm -f "${html_tmp}"
+    rm -rf "${tmp_dir}"
     return 1
   fi
 
   if [[ ! -f "${RENDERER_ROOT}/package.json" ]] || [[ ! -d "${RENDERER_ROOT}/node_modules/playwright" ]]; then
-    rm -f "${html_tmp}"
+    rm -rf "${tmp_dir}"
     return 1
   fi
 
-  python3 "${HTML_BUILDER}" "${INPUT_PATH}" "${html_tmp}"
-  node "${BROWSER_RENDERER}" "${html_tmp}" "${OUTPUT_PATH}"
-  rm -f "${html_tmp}"
+  if ! command -v pdfunite >/dev/null 2>&1; then
+    rm -rf "${tmp_dir}"
+    return 1
+  fi
+
+  python3 "${HTML_BUILDER}" "${INPUT_PATH}" "${cover_html}" cover
+  python3 "${HTML_BUILDER}" "${INPUT_PATH}" "${body_html}" body
+  node "${BROWSER_RENDERER}" "${cover_html}" "${cover_pdf}"
+  node "${BROWSER_RENDERER}" "${body_html}" "${body_pdf}"
+  pdfunite "${cover_pdf}" "${body_pdf}" "${OUTPUT_PATH}"
+  rm -rf "${tmp_dir}"
 }
 
 if try_browser_render; then

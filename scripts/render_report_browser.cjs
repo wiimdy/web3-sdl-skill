@@ -49,17 +49,11 @@ const { chromium } = requireFromRenderer('playwright');
     format: 'Letter',
     preferCSSPageSize: true,
     printBackground: true,
-    displayHeaderFooter: true,
-    headerTemplate: '<div></div>',
-    footerTemplate:
-      '<div style="width:100%;font-size:8px;color:#5b6778;padding:0 12mm 6mm;display:flex;justify-content:space-between;">' +
-      '<span>Web3 SDL Report</span>' +
-      '<span><span class="pageNumber"></span> / <span class="totalPages"></span></span>' +
-      '</div>',
+    displayHeaderFooter: false,
     margin: {
-      top: '10mm',
+      top: '0mm',
       right: '0mm',
-      bottom: '14mm',
+      bottom: '0mm',
       left: '0mm',
     },
   });

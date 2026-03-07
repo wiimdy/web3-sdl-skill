@@ -1,6 +1,5 @@
 (function () {
   const meta = window.__REPORT_META__ || {};
-  const PRINT_PAGE_HEIGHT_PX = 11 * 96;
 
   const severityClass = {
     Critical: 'severity-critical',
@@ -173,12 +172,6 @@
       const leader = document.createElement('span');
       leader.className = 'toc-leader';
       row.appendChild(leader);
-
-      const pageNumber = document.createElement('span');
-      pageNumber.className = 'toc-page-number';
-      const absoluteTop = targetHeading.getBoundingClientRect().top + window.scrollY;
-      pageNumber.textContent = String(Math.max(1, Math.floor(absoluteTop / PRINT_PAGE_HEIGHT_PX) + 1));
-      row.appendChild(pageNumber);
 
       return row;
     };
